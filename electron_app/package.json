@@ -1,0 +1,70 @@
+{
+  "name": "thai-comic-reader-electron",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Electron wrapper for Thai Comic Reader Basic",
+  "author": "Paul James",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "package:prep": "npm --prefix ../frontend run build && node ./scripts/prepare-backend-runtime.js",
+    "package": "npm run package:prep && electron-builder --mac",
+    "package:win": "npm run package:prep && electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.pauljames.thaicomicreader",
+    "productName": "Thai Comic Reader",
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend/dist"
+      },
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!**/.DS_Store",
+          "!**/__pycache__/**",
+          "!**/.venv/**",
+          "!**/storage/**",
+          "!**/page13-crop.png",
+          "!**/test-blank.png",
+          "!**/test-thai.png"
+        ]
+      },
+      {
+        "from": "../dictionary.js",
+        "to": "dictionary.js"
+      },
+      {
+        "from": "../telex-utf8.csv",
+        "to": "telex-utf8.csv"
+      },
+      {
+        "from": "bundle/backend-runtime",
+        "to": "backend-runtime"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}

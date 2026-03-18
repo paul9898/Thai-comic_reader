@@ -1,0 +1,16 @@
+.DS_Store
+.run/
+backend/.venv/
+backend/__pycache__/
+backend/storage/
+frontend/node_modules/
+frontend/dist/
+backend_macos/.venv/
+backend_macos/__pycache__/
+electron_app/bundle/*
+!electron_app/bundle/.gitkeep
+electron_app/.run/
+electron_app/node_modules/
+electron_app/dist/
+vocab.db
+*.pyc

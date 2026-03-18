@@ -1,0 +1,57 @@
+[
+  {
+    "word": "สวัสดี",
+    "pos": "interjection",
+    "meaning": "hello; greetings"
+  },
+  {
+    "word": "การ์ตูน",
+    "pos": "noun",
+    "meaning": "comic; cartoon"
+  },
+  {
+    "word": "ความลับ",
+    "pos": "noun",
+    "meaning": "secret; secrecy; confidential matter"
+  },
+  {
+    "word": "ถ่าย",
+    "pos": "verb",
+    "meaning": "to film; to photograph"
+  },
+  {
+    "word": "บ้าน",
+    "pos": "noun",
+    "meaning": "house; home"
+  },
+  {
+    "word": "พรุ่งนี้",
+    "pos": "adverb",
+    "meaning": "tomorrow"
+  },
+  {
+    "word": "วันนี้",
+    "pos": "adverb",
+    "meaning": "today"
+  },
+  {
+    "word": "นาย",
+    "pos": "pronoun",
+    "meaning": "you; he; young man depending on context"
+  },
+  {
+    "word": "บอก",
+    "pos": "verb",
+    "meaning": "to tell; to inform"
+  },
+  {
+    "word": "ให้",
+    "pos": "verb",
+    "meaning": "to give; to let; to allow"
+  },
+  {
+    "word": "เจอกัน",
+    "pos": "phrase",
+    "meaning": "see you; meet each other"
+  }
+]
