@@ -28,6 +28,12 @@ const VENV_SITE_PACKAGES_PRUNE_PREFIXES = [
   'setuptools',
 ]
 
+const REQUIRED_PYTHON_PACKAGES = [
+  'numpy',
+  'PIL',
+  'uvicorn',
+]
+
 function main() {
   const targetPlatform = resolveTargetPlatform()
   const runtimeSource = resolveRuntimeSource(targetPlatform)
@@ -73,7 +79,7 @@ function resolveRuntimeSource(targetPlatform) {
       ]
 
   for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
+    if (isUsableRuntime(candidate)) {
       return candidate
     }
   }
@@ -88,6 +94,39 @@ function resolveRuntimeSource(targetPlatform) {
   throw new Error(
     `No macOS backend runtime found. Expected ${path.join(BACKEND_MACOS_DIR, '.venv')} or ${path.join(BACKEND_DIR, '.venv')}.`,
   )
+}
+
+function isUsableRuntime(venvPath) {
+  if (!fs.existsSync(venvPath)) {
+    return false
+  }
+
+  const sitePackagesPath = resolveSitePackagesPath(venvPath)
+  if (!sitePackagesPath || !fs.existsSync(sitePackagesPath)) {
+    return false
+  }
+
+  return REQUIRED_PYTHON_PACKAGES.every((packageName) => fs.existsSync(path.join(sitePackagesPath, packageName)))
+}
+
+function resolveSitePackagesPath(venvPath) {
+  const libPath = path.join(venvPath, 'lib')
+  if (!fs.existsSync(libPath)) {
+    return null
+  }
+
+  for (const entry of fs.readdirSync(libPath, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith('python')) {
+      continue
+    }
+
+    const sitePackagesPath = path.join(libPath, entry.name, 'site-packages')
+    if (fs.existsSync(sitePackagesPath)) {
+      return sitePackagesPath
+    }
+  }
+
+  return null
 }
 
 function cleanupOldStageDirs() {

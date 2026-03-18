@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 import sqlite3
 from pathlib import Path
 
@@ -10,10 +11,12 @@ from fastapi import HTTPException
 from models import VocabCreate, VocabItem, VocabListResponse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATABASE_PATH = BASE_DIR / "vocab.db"
+DATA_DIR = Path(os.environ.get("THAI_COMIC_READER_DATA_DIR", str(BASE_DIR)))
+DATABASE_PATH = DATA_DIR / "vocab.db"
 
 
 def get_connection() -> sqlite3.Connection:
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
     return connection

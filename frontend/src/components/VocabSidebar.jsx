@@ -30,17 +30,32 @@ function VocabSidebar({
 
         <div className="sidebar__list sidebar__list--library">
           {libraryItems.length === 0 ? (
-            <div className="sidebar__empty">Books you open in the app will appear here with their last page.</div>
+            <div className="sidebar__empty">Books you open will appear here so you can jump back in where you left off.</div>
           ) : (
             [currentBook, ...shelfBooks].filter(Boolean).map((item) => (
               <article key={item.id} className={`library-card ${activeLibraryItemId === item.id ? 'is-active' : ''}`}>
                 <div className="library-card__row">
                   <div className="library-card__cover library-card__cover--small">
                     {item.coverImageUrl ? (
-                      <img src={resolveAssetUrl(item.coverImageUrl)} alt="" />
+                      <img
+                        src={resolveAssetUrl(item.coverImageUrl)}
+                        alt=""
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none'
+                          const fallback = event.currentTarget.parentElement?.querySelector('.library-card__cover-fallback')
+                          if (fallback) {
+                            fallback.removeAttribute('hidden')
+                          }
+                        }}
+                      />
                     ) : (
                       <div className="library-card__cover-fallback">{item.type.toUpperCase()}</div>
                     )}
+                    {item.coverImageUrl ? (
+                      <div className="library-card__cover-fallback" hidden>
+                        {item.type.toUpperCase()}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="library-card__content">
                     {item.isActive ? <span className="badge badge--ok">Current</span> : null}
@@ -89,7 +104,7 @@ function VocabSidebar({
 
         <div className="sidebar__list">
           {items.length === 0 ? (
-            <div className="sidebar__empty">Saved words will appear here.</div>
+            <div className="sidebar__empty">Words you save from OCR lookups will appear here.</div>
           ) : (
             items.map((item) => (
               <details key={item.id} className="vocab-card">

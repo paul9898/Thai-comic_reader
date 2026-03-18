@@ -1,8 +1,8 @@
 {
   "name": "thai-comic-reader-electron",
   "private": true,
-  "version": "0.1.0",
-  "description": "Electron wrapper for Thai Comic Reader Basic",
+  "version": "0.1.2",
+  "description": "Electron wrapper for Thai Comic Reader",
   "author": "Paul James",
   "main": "main.js",
   "scripts": {
@@ -24,6 +24,9 @@
     "appId": "com.pauljames.thaicomicreader",
     "productName": "Thai Comic Reader",
     "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "buildResources": "build"
+    },
     "files": [
       "main.js",
       "preload.js"
@@ -61,12 +64,14 @@
       }
     ],
     "mac": {
+      "icon": "build/icon.icns",
       "target": [
         "dmg"
       ],
       "category": "public.app-category.education"
     },
     "win": {
+      "icon": "build/icon.png",
       "target": [
         "nsis"
       ]

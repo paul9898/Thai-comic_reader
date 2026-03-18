@@ -15,18 +15,22 @@ const BACKEND_DIR = app.isPackaged
 const BUNDLED_BACKEND_RUNTIME_DIR = app.isPackaged
   ? path.join(RESOURCES_DIR, 'backend-runtime')
   : path.join(__dirname, 'bundle', 'backend-runtime')
-const RUN_DIR = path.join(__dirname, '.run')
+const RUN_DIR = path.join(app.getPath('userData'), '.run')
 const FRONTEND_DIST_INDEX = path.join(FRONTEND_DIR, 'dist', 'index.html')
 const FRONTEND_URL = 'http://127.0.0.1:5173'
-const BACKEND_PORT = 8000
+const DEV_BACKEND_PORT = 8000
+const PACKAGED_BACKEND_PORT = 43123
 const FRONTEND_PORT = 5173
 const LIBRARY_STORE_PATH = path.join(app.getPath('userData'), 'library.json')
 
 let backendProcess = null
 let frontendProcess = null
 let windowRef = null
+let backendPort = app.isPackaged ? PACKAGED_BACKEND_PORT : DEV_BACKEND_PORT
 
 function createWindow() {
+  process.env.THAI_COMIC_READER_API_BASE_URL = `http://127.0.0.1:${backendPort}`
+  process.env.THAI_COMIC_READER_APP_VERSION = app.getVersion()
   windowRef = new BrowserWindow({
     width: 1480,
     height: 980,
@@ -74,6 +78,33 @@ function waitForPort(port, timeoutMs = 20000) {
   })
 }
 
+function findAvailablePort(preferredPort) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.unref()
+    server.once('error', (error) => {
+      if (error?.code !== 'EADDRINUSE') {
+        reject(error)
+        return
+      }
+
+      const fallbackServer = net.createServer()
+      fallbackServer.unref()
+      fallbackServer.once('error', reject)
+      fallbackServer.listen(0, '127.0.0.1', () => {
+        const address = fallbackServer.address()
+        const port = typeof address === 'object' && address ? address.port : 0
+        fallbackServer.close(() => resolve(port))
+      })
+    })
+    server.listen(preferredPort, '127.0.0.1', () => {
+      const address = server.address()
+      const port = typeof address === 'object' && address ? address.port : preferredPort
+      server.close(() => resolve(port))
+    })
+  })
+}
+
 function startBackend() {
   if (backendProcess) {
     return
@@ -88,9 +119,13 @@ function startBackend() {
   const backendLog = fs.openSync(path.join(RUN_DIR, 'backend.log'), 'a')
   backendProcess = spawn(
     pythonBin.command,
-    [...pythonBin.args, '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', String(BACKEND_PORT)],
+    [...pythonBin.args, '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', String(backendPort)],
     {
       cwd: BACKEND_DIR,
+      env: {
+        ...process.env,
+        THAI_COMIC_READER_DATA_DIR: app.getPath('userData'),
+      },
       stdio: ['ignore', backendLog, backendLog],
     },
   )
@@ -157,6 +192,10 @@ function resolvePythonCommand() {
 }
 
 async function bootstrap() {
+  if (app.isPackaged) {
+    backendPort = await findAvailablePort(PACKAGED_BACKEND_PORT)
+  }
+
   if (!fs.existsSync(FRONTEND_DIST_INDEX)) {
     try {
       await waitForPort(FRONTEND_PORT, 1500)
@@ -166,13 +205,17 @@ async function bootstrap() {
     }
   }
 
-  try {
-    await waitForPort(BACKEND_PORT, 1500)
-  } catch {
+  if (app.isPackaged) {
     startBackend()
+  } else {
+    try {
+      await waitForPort(backendPort, 1500)
+    } catch {
+      startBackend()
+    }
   }
 
-  await waitForPort(BACKEND_PORT)
+  await waitForPort(backendPort)
   createWindow()
 }
 
@@ -189,7 +232,7 @@ app.whenReady().then(async () => {
         `Dev frontend fallback: ${FRONTEND_URL}`,
         `Backend source expected at: ${BACKEND_DIR}`,
         `Bundled backend runtime expected at: ${BUNDLED_BACKEND_RUNTIME_DIR}`,
-        `Backend expected on port: ${BACKEND_PORT}`,
+        `Backend expected on port: ${backendPort}`,
         '',
         'Either build the frontend first or make sure the regular app dependencies are installed.',
         '',

@@ -9,6 +9,7 @@ const DICTIONARY_LANG_KEY = 'thai-comic-reader.dictionary-lang'
 const LIBRARY_KEY = 'thai-comic-reader.library'
 const LAST_DOCUMENT_KEY = 'thai-comic-reader.last-document'
 const LAST_PAGE_KEY = 'thai-comic-reader.last-page'
+const APP_VERSION_KEY = 'thai-comic-reader.app-version'
 const AUTO_OCR_KEY = 'thai-comic-reader.auto-ocr'
 const AI_PROVIDER_KEY = 'thai-comic-reader.ai-provider'
 const OCR_EDIT_OVERRIDES_KEY = 'thai-comic-reader.ocr-edit-overrides'
@@ -16,7 +17,6 @@ const AI_PROVIDERS = [
   { id: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com/' },
   { id: 'claude', label: 'Claude', url: 'https://claude.ai/new' },
   { id: 'gemini', label: 'Gemini', url: 'https://gemini.google.com/app' },
-  { id: 'deepseek', label: 'DeepSeek', url: 'https://chat.deepseek.com/' },
 ]
 
 function readStoredDocument() {
@@ -82,6 +82,10 @@ function readStoredLibrary() {
   }
 }
 
+function isDesktopEnvironment() {
+  return Boolean(window.electronShell?.readLibrary)
+}
+
 function buildOcrOverrideKey(documentId, pageNum, boxId) {
   if (!documentId || pageNum == null || boxId == null) {
     return ''
@@ -92,9 +96,9 @@ function buildOcrOverrideKey(documentId, pageNum, boxId) {
 
 function App() {
   const api = useApi()
-  const [documentData, setDocumentData] = useState(() => readStoredDocument())
+  const [documentData, setDocumentData] = useState(() => (isDesktopEnvironment() ? null : readStoredDocument()))
   const [currentDocumentSource, setCurrentDocumentSource] = useState(null)
-  const [currentPage, setCurrentPage] = useState(() => readStoredPage())
+  const [currentPage, setCurrentPage] = useState(() => (isDesktopEnvironment() ? 1 : readStoredPage()))
   const [libraryItems, setLibraryItems] = useState(() => readStoredLibrary())
   const [hasHydratedLibrary, setHasHydratedLibrary] = useState(() => !window.electronShell?.readLibrary)
   const [ocrByPage, setOcrByPage] = useState({})
@@ -124,6 +128,7 @@ function App() {
   const savedWordSet = useMemo(() => new Set(vocabItems.map((item) => item.word)), [vocabItems])
   const aiProvider = AI_PROVIDERS.find((provider) => provider.id === aiProviderId) || AI_PROVIDERS[0]
   const isDesktopApp = Boolean(window.electronShell?.selectDocument)
+  const appVersion = window.electronShell?.appVersion || '0.0.0'
   const libraryViewItems = useMemo(
     () =>
       libraryItems.map((item) => ({
@@ -174,6 +179,20 @@ function App() {
   }, [libraryItems])
 
   useEffect(() => {
+    if (!isDesktopApp) {
+      return
+    }
+
+    // Rendered page URLs are session-scoped, so desktop builds should start clean
+    // and rely on the library for reopen instead of restoring stale page state.
+    setDocumentData(null)
+    setCurrentPage(1)
+    setCurrentDocumentSource(null)
+    localStorage.removeItem(LAST_DOCUMENT_KEY)
+    localStorage.removeItem(LAST_PAGE_KEY)
+  }, [isDesktopApp])
+
+  useEffect(() => {
     if (!window.electronShell?.readLibrary) {
       return
     }
@@ -182,14 +201,20 @@ function App() {
 
     async function hydrateLibrary() {
       try {
+        const storedVersion = localStorage.getItem(APP_VERSION_KEY) || ''
         const storedItems = await window.electronShell.readLibrary()
         if (cancelled) {
           return
         }
 
-        if (Array.isArray(storedItems) && storedItems.length) {
-          setLibraryItems(normalizeLibraryItems(storedItems))
+        if (storedVersion && storedVersion !== appVersion) {
+          setLibraryItems([])
+          localStorage.removeItem(LIBRARY_KEY)
+          await window.electronShell.writeLibrary([])
+        } else if (Array.isArray(storedItems) && storedItems.length) {
+          setLibraryItems(normalizeLibraryItems(stripTransientLibraryFields(storedItems)))
         }
+        localStorage.setItem(APP_VERSION_KEY, appVersion)
       } finally {
         if (!cancelled) {
           setHasHydratedLibrary(true)
@@ -202,14 +227,14 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [appVersion])
 
   useEffect(() => {
     if (!window.electronShell?.writeLibrary || !hasHydratedLibrary) {
       return
     }
 
-    void window.electronShell.writeLibrary(normalizeLibraryItems(libraryItems))
+    void window.electronShell.writeLibrary(normalizeLibraryItems(stripTransientLibraryFields(libraryItems)))
   }, [hasHydratedLibrary, libraryItems])
 
   useEffect(() => {
@@ -815,7 +840,7 @@ function App() {
   return (
     <div className="app-shell">
       <Toolbar
-        appName="Thai Comic Reader Basic"
+        appName="Thai Comic Reader"
         onOpenPdf={(event) => {
           if (isDesktopApp) {
             void handleOpenDocument('pdf')
@@ -874,8 +899,8 @@ function App() {
         <section className="help-panel">
           <div className="help-panel__header">
             <div>
-              <h2>How To Use It</h2>
-              <p>Quick guide for the Electron reader.</p>
+              <h2>Getting Started</h2>
+              <p>A quick guide to reading, OCR, and word lookup.</p>
             </div>
             <button className="button button--ghost" onClick={() => setIsHelpOpen(false)}>
               Close
@@ -883,23 +908,23 @@ function App() {
           </div>
           <div className="help-panel__grid">
             <article className="help-card">
-              <h3>Basic Flow</h3>
+              <h3>Start Reading</h3>
               <ol>
-                <li>Open a PDF or image.</li>
+                <li>Open a PDF or image from the toolbar.</li>
                 <li>Move between pages with the arrow buttons or keyboard arrows.</li>
-                <li>Run full-page OCR with <strong>O</strong> when you want text boxes.</li>
-                <li>Click a highlighted text box to segment words and look them up.</li>
+                <li>Run OCR with <strong>O</strong> or leave <strong>Auto OCR</strong> on.</li>
+                <li>Click a highlighted text box to split words and look them up.</li>
                 <li>Open <strong>Edit / Re-Segment OCR</strong> when you want to correct OCR, combine split words, or use the Thai keyboard.</li>
               </ol>
             </article>
             <article className="help-card">
-              <h3>Fastest OCR</h3>
+              <h3>Faster OCR</h3>
               <ol>
-                <li>Use the <strong>Auto OCR</strong> toggle in the toolbar if you want new pages to start OCR automatically as you open or flip through them.</li>
+                <li>Use <strong>Auto OCR</strong> if you want new pages to start OCR automatically as you flip through them.</li>
                 <li>Use <strong>OCR Region</strong> or press <strong>R</strong> for a speech bubble instead of the whole page.</li>
-                <li>The first OCR on a new book can take a little while while the OCR engine warms up, especially on larger or denser pages.</li>
-                <li>Repeat OCR on the same page or region is now cached and should return faster.</li>
-                <li>For huge pages, region OCR will usually feel much snappier than full-page OCR.</li>
+                <li>The first OCR on a new book can take a little while while the engine warms up, especially on larger or denser pages.</li>
+                <li>Repeat OCR on the same page or region is cached and should return faster.</li>
+                <li>For huge pages, region OCR usually feels much snappier than full-page OCR.</li>
                 <li>Use <strong>Re-Segment / Update</strong> after keyboard edits if you want the lookup chips to refresh from your corrected text.</li>
               </ol>
             </article>
@@ -908,8 +933,8 @@ function App() {
               <ol>
                 <li>Press <strong>G</strong> or click <strong>Ask {aiProvider.label}</strong>.</li>
                 <li>Drag a box over the panel you want help with.</li>
-                <li>The app opens your selected AI and copies the prompt to your clipboard automatically, so paste it when the page opens.</li>
-                <li>If your Mac allows it, the image slice is copied to the clipboard too. If not, the slice is downloaded for you to attach manually.</li>
+                <li>The app opens your selected AI and copies the prompt to your clipboard automatically, so paste it into the new chat.</li>
+                <li>If your Mac allows it, the image slice is copied too. If not, the slice is downloaded for you to attach manually.</li>
               </ol>
             </article>
             <article className="help-card">
@@ -945,7 +970,7 @@ function App() {
           <div className="help-panel__header">
             <div>
               <h2>Settings</h2>
-              <p>Shared controls for reading, AI, and your saved local data.</p>
+              <p>Reading controls, AI preferences, and local app data.</p>
             </div>
             <button className="button button--ghost" onClick={() => setIsSettingsOpen(false)}>
               Close
@@ -985,13 +1010,13 @@ function App() {
               <p>
                 {currentDocumentSource?.libraryId
                   ? 'The active book is pinned at the top of the library with progress and last-opened details.'
-                  : 'Open a book from Electron to add it to the shareable bookshelf view.'}
+                  : 'Open a book and it will appear here so you can resume later.'}
               </p>
             </article>
             <article className="help-card">
               <h3>Corrections</h3>
               <p>{Object.keys(ocrEditOverrides).length} saved OCR text overrides.</p>
-              <p>Those edits stay local on this machine and are reused when the same OCR box is opened again.</p>
+              <p>Those edits stay on this machine and are reused when the same OCR box is opened again.</p>
             </article>
           </div>
         </section>
@@ -1129,6 +1154,13 @@ function normalizeLibraryItems(items) {
     const rightTime = Date.parse(right.lastOpenedAt || '') || 0
     return rightTime - leftTime
   })
+}
+
+function stripTransientLibraryFields(items) {
+  return items.map((item) => ({
+    ...item,
+    coverImageUrl: '',
+  }))
 }
 
 function upsertLibraryItem(items, nextItem) {
@@ -1287,20 +1319,25 @@ async function writeAiClipboard(blob, prompt) {
     }
   }
 
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(prompt)
-    textCopied = true
-  }
+  await writePromptClipboard(prompt)
+  textCopied = true
 
   return { textCopied, imageCopied }
 }
 
 async function writePromptClipboard(prompt) {
+  if (window.electronShell?.writeClipboardText) {
+    window.electronShell.writeClipboardText(prompt)
+    await wait(120)
+    return
+  }
+
   if (!navigator.clipboard?.writeText) {
     throw new Error('Clipboard text copy is not available.')
   }
 
   await navigator.clipboard.writeText(prompt)
+  await wait(120)
 }
 
 function downloadBlob(blob, filename) {
@@ -1319,6 +1356,12 @@ function openExternalUrl(url) {
   }
 
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
 }
 
 export default App

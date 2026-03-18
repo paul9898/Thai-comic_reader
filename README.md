@@ -1,4 +1,4 @@
-# Thai Comic Reader Basic
+# Thai Comic Reader
 
 Cross-platform React + FastAPI app for reading Thai comic pages with offline OCR, region OCR, word lookup, and vocabulary saving.
 

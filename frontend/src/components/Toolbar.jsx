@@ -27,7 +27,7 @@ function Toolbar({
     <header className="toolbar">
       <div className="toolbar__group">
         <div className="toolbar__brand">
-          <span className="toolbar__eyebrow">Cross-platform baseline</span>
+          <span className="toolbar__eyebrow">Thai reading companion</span>
           <strong>{appName}</strong>
         </div>
         {usesNativePicker ? (

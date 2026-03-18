@@ -39,8 +39,8 @@ function ComicViewer({
     return (
       <section className="viewer viewer--empty">
         <div className="viewer__empty-card">
-          <h2>Thai Comic Reader Basic</h2>
-          <p>Open a PDF or image to start reading with offline OCR, region capture, and dictionary lookup.</p>
+          <h2>Thai Comic Reader</h2>
+          <p>Open a comic page or volume to read, run OCR, look up words, and save vocabulary as you go.</p>
         </div>
       </section>
     )
