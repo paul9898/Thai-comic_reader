@@ -626,10 +626,6 @@ input {
   min-height: 0;
 }
 
-.library-card--hero {
-  padding: 0.95rem;
-}
-
 .sidebar__empty,
 .vocab-card,
 .library-card {
@@ -659,10 +655,10 @@ input {
   background: rgba(56, 189, 248, 0.08);
 }
 
-.library-card__hero {
+.library-card__row {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 0.85rem;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 0.75rem;
   align-items: start;
 }
 
@@ -673,6 +669,10 @@ input {
   overflow: hidden;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.library-card__cover--small {
+  width: 56px;
 }
 
 .library-card__cover img,
@@ -694,13 +694,13 @@ input {
   letter-spacing: 0.08em;
 }
 
-.library-card__hero-copy {
+.library-card__content {
   min-width: 0;
   display: grid;
   gap: 0.35rem;
 }
 
-.library-card__hero-copy strong {
+.library-card__content strong {
   line-height: 1.2;
 }
 

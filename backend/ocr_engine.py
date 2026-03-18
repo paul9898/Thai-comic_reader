@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+import hashlib
+import json
 from pathlib import Path
 import platform
 import threading
@@ -12,6 +14,9 @@ from PIL import Image, ImageEnhance, ImageOps
 
 from models import OcrBox, OcrRegion
 
+BASE_DIR = Path(__file__).resolve().parent
+OCR_CACHE_DIR = BASE_DIR / "storage" / "ocr-cache"
+
 
 class OcrEngine:
     def __init__(self) -> None:
@@ -21,6 +26,7 @@ class OcrEngine:
         self._cache_limit = 64
         self._warmup_started = False
         self._warmup_lock = threading.Lock()
+        OCR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     def _ensure_reader(self):
         if self._reader is not None:
@@ -242,6 +248,43 @@ class OcrEngine:
         x_min, y_min, x_max, y_max = [round(value / scale) for value in bbox]
         return [x_min + offset_x, y_min + offset_y, x_max + offset_x, y_max + offset_y]
 
+    @staticmethod
+    def _disk_cache_path(cache_key: str) -> Path:
+        return OCR_CACHE_DIR / f"{cache_key}.json"
+
+    @staticmethod
+    def _build_disk_cache_key(image_array: np.ndarray, fast_mode: bool) -> str:
+        payload = image_array.tobytes()
+        digest = hashlib.sha256()
+        digest.update(b"fast" if fast_mode else b"quality")
+        digest.update(str(image_array.shape).encode("utf-8"))
+        digest.update(payload)
+        return digest.hexdigest()
+
+    def _read_disk_cache(self, cache_key: str) -> list[OcrBox] | None:
+        cache_path = self._disk_cache_path(cache_key)
+        if not cache_path.exists():
+            return None
+
+        try:
+            payload = json.loads(cache_path.read_text(encoding="utf-8"))
+            if not isinstance(payload, list):
+                return None
+            return [OcrBox(**item) for item in payload if isinstance(item, dict)]
+        except Exception:
+            return None
+
+    def _write_disk_cache(self, cache_key: str, boxes: list[OcrBox]) -> None:
+        cache_path = self._disk_cache_path(cache_key)
+        try:
+            cache_path.write_text(
+                json.dumps([box.model_dump() for box in boxes], ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except Exception:
+            # Cache writes should never block OCR results from returning.
+            return
+
     def _read_with_cache(
         self,
         cache_key: tuple[Any, ...],
@@ -256,10 +299,22 @@ class OcrEngine:
             return cached
 
         processed_image, scale = self._preprocess_image(image, fast_mode=fast_mode)
+        disk_cache_key = self._build_disk_cache_key(processed_image, fast_mode) if offset_x == 0 and offset_y == 0 else ""
+        if disk_cache_key:
+            disk_cached = self._read_disk_cache(disk_cache_key)
+            if disk_cached is not None:
+                self._cache[cache_key] = disk_cached
+                self._cache.move_to_end(cache_key)
+                if len(self._cache) > self._cache_limit:
+                    self._cache.popitem(last=False)
+                return disk_cached
+
         boxes = self._read_array(processed_image, scale, fast_mode=fast_mode, offset_x=offset_x, offset_y=offset_y)
         self._cache[cache_key] = boxes
         if len(self._cache) > self._cache_limit:
             self._cache.popitem(last=False)
+        if disk_cache_key:
+            self._write_disk_cache(disk_cache_key, boxes)
         return boxes
 
     def read(self, image_path: Path) -> list[OcrBox]:

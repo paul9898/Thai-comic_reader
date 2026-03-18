@@ -34,9 +34,24 @@ For non-technical users, the hardest remaining problem is not Electron itself. I
 
 without asking the user to install them manually.
 
-## Likely next implementation
+## Current prep flow
 
-- Stage a Mac-only backend runtime bundle with:
-  - [scripts/prepare-backend-runtime.sh](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/scripts/prepare-backend-runtime.sh)
-- Add that runtime bundle to Electron `extraResources`
-- Update the package flow to include the staged runtime automatically
+- `npm run package:prep:mac`
+  - builds the frontend
+  - stages a macOS backend runtime from `backend_macos/.venv` if present
+  - falls back to `backend/.venv` for local macOS development
+- `npm run package:prep:win`
+  - builds the frontend
+  - expects a Windows runtime at `backend_windows/.venv`
+  - fails fast if that runtime does not exist yet
+
+## Why the split matters
+
+The packaged app cannot reuse a macOS Python environment on Windows.
+
+That means:
+
+- macOS release packaging can be prepared on this machine
+- Windows release packaging needs either:
+  - a real Windows machine, or
+  - CI that creates `backend_windows/.venv` before `electron-builder --win`

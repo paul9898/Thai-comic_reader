@@ -28,53 +28,34 @@ function VocabSidebar({
           </button>
         </div>
 
-        {currentBook ? (
-          <article className="library-card library-card--hero is-active">
-            <div className="library-card__hero">
-              <div className="library-card__cover">
-                {currentBook.coverImageUrl ? (
-                  <img src={resolveAssetUrl(currentBook.coverImageUrl)} alt="" />
-                ) : (
-                  <div className="library-card__cover-fallback">{currentBook.type.toUpperCase()}</div>
-                )}
-              </div>
-              <div className="library-card__hero-copy">
-                <span className="badge badge--ok">Currently Reading</span>
-                <strong>{currentBook.title}</strong>
-                <p>
-                  Page {currentBook.lastPage || 1}
-                  {currentBook.totalPages ? ` of ${currentBook.totalPages}` : ''}
-                </p>
-                <p>{currentBook.progressLabel}</p>
-                <p>{currentBook.lastOpenedLabel}</p>
-              </div>
-            </div>
-            <div className="library-card__actions">
-              <button className="button button--secondary" onClick={() => onResumeBook(currentBook)} disabled={isLibraryBusy}>
-                Resume
-              </button>
-              <button className="button button--ghost" onClick={() => onRestartBook(currentBook)} disabled={isLibraryBusy}>
-                Start Over
-              </button>
-            </div>
-          </article>
-        ) : null}
-
         <div className="sidebar__list sidebar__list--library">
           {libraryItems.length === 0 ? (
             <div className="sidebar__empty">Books you open in the app will appear here with their last page.</div>
           ) : (
-            shelfBooks.map((item) => (
+            [currentBook, ...shelfBooks].filter(Boolean).map((item) => (
               <article key={item.id} className={`library-card ${activeLibraryItemId === item.id ? 'is-active' : ''}`}>
-                <div className="library-card__header">
-                  <strong>{item.title}</strong>
-                  <span>{item.type.toUpperCase()}</span>
+                <div className="library-card__row">
+                  <div className="library-card__cover library-card__cover--small">
+                    {item.coverImageUrl ? (
+                      <img src={resolveAssetUrl(item.coverImageUrl)} alt="" />
+                    ) : (
+                      <div className="library-card__cover-fallback">{item.type.toUpperCase()}</div>
+                    )}
+                  </div>
+                  <div className="library-card__content">
+                    {item.isActive ? <span className="badge badge--ok">Current</span> : null}
+                    <div className="library-card__header">
+                      <strong>{item.title}</strong>
+                      <span>{item.type.toUpperCase()}</span>
+                    </div>
+                    <p>
+                      Resume from page {item.lastPage || 1}
+                      {item.totalPages ? ` of ${item.totalPages}` : ''}
+                    </p>
+                    <p>{item.progressLabel}</p>
+                    <p>{item.lastOpenedLabel}</p>
+                  </div>
                 </div>
-                <p>
-                  Resume from page {item.lastPage || 1}
-                  {item.totalPages ? ` of ${item.totalPages}` : ''}
-                </p>
-                <p>{item.lastOpenedLabel}</p>
                 <div className="library-card__actions">
                   <button className="button button--secondary" onClick={() => onResumeBook(item)} disabled={isLibraryBusy}>
                     Resume

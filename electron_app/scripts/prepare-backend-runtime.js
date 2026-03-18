@@ -3,6 +3,8 @@ const path = require('path')
 
 const ROOT_DIR = path.resolve(__dirname, '..', '..')
 const BACKEND_DIR = path.join(ROOT_DIR, 'backend')
+const BACKEND_MACOS_DIR = path.join(ROOT_DIR, 'backend_macos')
+const BACKEND_WINDOWS_DIR = path.join(ROOT_DIR, 'backend_windows')
 const STAGE_ROOT = path.join(ROOT_DIR, 'electron_app', 'bundle')
 const STAGE_DIR = path.join(STAGE_ROOT, 'backend-runtime')
 
@@ -27,7 +29,12 @@ const VENV_SITE_PACKAGES_PRUNE_PREFIXES = [
 ]
 
 function main() {
+  const targetPlatform = resolveTargetPlatform()
+  const runtimeSource = resolveRuntimeSource(targetPlatform)
+
   console.log('Preparing backend runtime bundle...')
+  console.log(`Target platform: ${targetPlatform}`)
+  console.log(`Runtime source: ${runtimeSource}`)
 
   cleanupOldStageDirs()
   if (fs.existsSync(STAGE_DIR)) {
@@ -36,12 +43,51 @@ function main() {
   fs.mkdirSync(STAGE_DIR, { recursive: true })
 
   copyBackendSource()
-  copyBundledVenv()
+  copyBundledVenv(runtimeSource)
   copyFileIfPresent(path.join(ROOT_DIR, 'dictionary.js'), path.join(STAGE_DIR, 'dictionary.js'))
   copyFileIfPresent(path.join(ROOT_DIR, 'telex-utf8.csv'), path.join(STAGE_DIR, 'telex-utf8.csv'))
 
   console.log('Backend runtime staged at:')
   console.log(`  ${STAGE_DIR}`)
+}
+
+function resolveTargetPlatform() {
+  const requested = (process.env.THAI_COMIC_READER_TARGET || process.argv[2] || process.platform).toLowerCase()
+  if (requested === 'darwin' || requested === 'mac' || requested === 'macos') {
+    return 'mac'
+  }
+  if (requested === 'win32' || requested === 'win' || requested === 'windows') {
+    return 'windows'
+  }
+  throw new Error(`Unsupported target platform "${requested}". Use "mac" or "windows".`)
+}
+
+function resolveRuntimeSource(targetPlatform) {
+  const candidates = targetPlatform === 'mac'
+    ? [
+        path.join(BACKEND_MACOS_DIR, '.venv'),
+        path.join(BACKEND_DIR, '.venv'),
+      ]
+    : [
+        path.join(BACKEND_WINDOWS_DIR, '.venv'),
+      ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  if (targetPlatform === 'windows') {
+    throw new Error(
+      `No Windows backend runtime found. Expected ${path.join(BACKEND_WINDOWS_DIR, '.venv')}.\n` +
+      'Build the Windows Python environment on Windows first, then rerun package prep.',
+    )
+  }
+
+  throw new Error(
+    `No macOS backend runtime found. Expected ${path.join(BACKEND_MACOS_DIR, '.venv')} or ${path.join(BACKEND_DIR, '.venv')}.`,
+  )
 }
 
 function cleanupOldStageDirs() {
@@ -74,12 +120,7 @@ function copyBackendSource() {
   })
 }
 
-function copyBundledVenv() {
-  const sourceDir = path.join(BACKEND_DIR, '.venv')
-  if (!fs.existsSync(sourceDir)) {
-    return
-  }
-
+function copyBundledVenv(sourceDir) {
   const targetDir = path.join(STAGE_DIR, '.venv')
   copyDirectory(sourceDir, targetDir, {
     shouldSkip(relativePath, entry) {

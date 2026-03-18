@@ -8,9 +8,13 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
-    "package:prep": "npm --prefix ../frontend run build && node ./scripts/prepare-backend-runtime.js",
-    "package": "npm run package:prep && electron-builder --mac",
-    "package:win": "npm run package:prep && electron-builder --win"
+    "package:prep": "npm run package:prep:mac",
+    "package:prep:mac": "npm --prefix ../frontend run build && node ./scripts/prepare-backend-runtime.js mac",
+    "package:prep:win": "npm --prefix ../frontend run build && node ./scripts/prepare-backend-runtime.js windows",
+    "package": "npm run package:mac",
+    "package:mac": "npm run package:prep:mac && electron-builder --mac",
+    "package:mac:zip": "npm run package:prep:mac && electron-builder --mac zip",
+    "package:win": "npm run package:prep:win && electron-builder --win"
   },
   "devDependencies": {
     "electron": "^33.2.1",
@@ -19,6 +23,7 @@
   "build": {
     "appId": "com.pauljames.thaicomicreader",
     "productName": "Thai Comic Reader",
+    "electronDist": "node_modules/electron/dist",
     "files": [
       "main.js",
       "preload.js"

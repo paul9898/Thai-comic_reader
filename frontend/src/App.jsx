@@ -76,14 +76,7 @@ function readStoredLibrary() {
       return []
     }
 
-    return parsed.filter(
-      (item) =>
-        item &&
-        typeof item.id === 'string' &&
-        typeof item.title === 'string' &&
-        typeof item.type === 'string' &&
-        typeof item.lastPage === 'number',
-    )
+    return normalizeLibraryItems(parsed)
   } catch {
     return []
   }
@@ -176,7 +169,7 @@ function App() {
 
   useEffect(() => {
     if (!window.electronShell?.readLibrary) {
-      localStorage.setItem(LIBRARY_KEY, JSON.stringify(libraryItems))
+      localStorage.setItem(LIBRARY_KEY, JSON.stringify(normalizeLibraryItems(libraryItems)))
     }
   }, [libraryItems])
 
@@ -195,7 +188,7 @@ function App() {
         }
 
         if (Array.isArray(storedItems) && storedItems.length) {
-          setLibraryItems(storedItems)
+          setLibraryItems(normalizeLibraryItems(storedItems))
         }
       } finally {
         if (!cancelled) {
@@ -216,7 +209,7 @@ function App() {
       return
     }
 
-    void window.electronShell.writeLibrary(libraryItems)
+    void window.electronShell.writeLibrary(normalizeLibraryItems(libraryItems))
   }, [hasHydratedLibrary, libraryItems])
 
   useEffect(() => {
@@ -805,7 +798,7 @@ function App() {
     }
 
     const nextItem = {
-      id: buildLibraryItemId(source.type, source.sourcePath),
+      id: buildLibraryIdentity(source.type, source.title, source.sourcePath),
       title: source.title,
       type: source.type,
       sourcePath: source.sourcePath,
@@ -1075,16 +1068,72 @@ function App() {
 }
 
 function buildLibraryItemId(type, sourcePath) {
-  return `${type}:${sourcePath}`
+  return `${type}:${normalizeLibraryIdentity(sourcePath || '')}`
 }
 
-function upsertLibraryItem(items, nextItem) {
-  const filtered = items.filter((item) => item.id !== nextItem.id)
-  return [nextItem, ...filtered].sort((left, right) => {
+function buildLibraryIdentity(type, title, sourcePath) {
+  const titleKey = normalizeLibraryIdentity(title || '')
+  if (titleKey) {
+    return `${type}:${titleKey}`
+  }
+
+  return buildLibraryItemId(type, sourcePath)
+}
+
+function normalizeLibraryIdentity(value) {
+  return String(value || '')
+    .normalize('NFC')
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function normalizeLibraryItems(items) {
+  const deduped = new Map()
+
+  for (const item of items) {
+    if (
+      !item ||
+      typeof item.title !== 'string' ||
+      typeof item.type !== 'string' ||
+      typeof item.lastPage !== 'number'
+    ) {
+      continue
+    }
+
+    const sourcePath = typeof item.sourcePath === 'string' ? item.sourcePath : ''
+    const canonicalId = buildLibraryIdentity(item.type, item.title, sourcePath)
+    if (!canonicalId || typeof canonicalId !== 'string') {
+      continue
+    }
+
+    const normalized = {
+      ...item,
+      id: canonicalId,
+      sourcePath,
+    }
+
+    const existing = deduped.get(canonicalId)
+    if (!existing) {
+      deduped.set(canonicalId, normalized)
+      continue
+    }
+
+    const existingTime = Date.parse(existing.lastOpenedAt || '') || 0
+    const nextTime = Date.parse(normalized.lastOpenedAt || '') || 0
+    deduped.set(canonicalId, nextTime >= existingTime ? normalized : existing)
+  }
+
+  return Array.from(deduped.values()).sort((left, right) => {
     const leftTime = Date.parse(left.lastOpenedAt || '') || 0
     const rightTime = Date.parse(right.lastOpenedAt || '') || 0
     return rightTime - leftTime
   })
+}
+
+function upsertLibraryItem(items, nextItem) {
+  const canonicalId = buildLibraryIdentity(nextItem.type, nextItem.title, nextItem.sourcePath)
+  return normalizeLibraryItems([{ ...nextItem, id: canonicalId }, ...items])
 }
 
 function clampPage(pageNum, totalPages) {
