@@ -111,13 +111,35 @@ jobs:
       - name: Bootstrap Windows backend runtime
         run: powershell -ExecutionPolicy Bypass -File .\electron_app\scripts\bootstrap-windows-runtime.ps1
 
+      - name: Prepare Windows desktop package
+        run: npm run package:prep:win
+        working-directory: electron_app
+
       - name: Build Windows desktop package
-        run: npm run package:win
+        run: |
+          npm run package:win *>&1 | Tee-Object -FilePath windows-package.log
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+        shell: pwsh
         working-directory: electron_app
 
       - name: Upload Windows build artifacts
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: thai-comic-reader-windows
           path: electron_app/dist
           if-no-files-found: error
+
+      - name: Upload Windows packaging diagnostics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thai-comic-reader-windows-diagnostics
+          path: |
+            electron_app/windows-package.log
+            electron_app/dist
+            electron_app/builder-debug.yml
+            electron_app/.run
+          if-no-files-found: warn
