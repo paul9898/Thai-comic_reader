@@ -18,7 +18,7 @@ If you are sending this project to someone else on macOS, the easiest path is:
 
 1. Keep `dictionary.js` and `telex-utf8.csv` in the project root
 2. Zip the whole folder
-3. Tell them to unzip it and double-click [start-basic.command](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/start-basic.command)
+3. Tell them to unzip it and double-click `start-basic.command`
 
 That launcher:
 
@@ -27,7 +27,7 @@ That launcher:
 - starts the backend on `8000`
 - starts the frontend on `5173`
 
-They can also run [run-basic.sh](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/run-basic.sh) from Terminal.
+They can also run `./run-basic.sh` from Terminal at the project root.
 
 ### 1. System dependency
 
@@ -40,7 +40,7 @@ brew install poppler
 ### 2. Backend
 
 ```bash
-cd /Users/pauljames/Documents/Codex/Thai\ comic\ reader/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -56,7 +56,7 @@ python -c "import pythainlp; pythainlp.corpus.download('wordnet')"
 ### 3. Frontend
 
 ```bash
-cd /Users/pauljames/Documents/Codex/Thai\ comic\ reader/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -84,7 +84,7 @@ To stop both servers when using the launcher, press `Ctrl+C` in the launcher win
 ## AI Provider Setting
 
 - The app has one shared AI provider setting for all AI actions.
-- You can choose `ChatGPT`, `Claude`, `Gemini`, or `DeepSeek` in the in-app Help panel.
+- You can choose `ChatGPT`, `Claude`, or `Gemini` in the in-app Help panel.
 - That setting applies to popup `Search AI` and region `Ask AI` actions.
 
 ## Notes

@@ -28,7 +28,7 @@ The `backend_macos/` variant is for:
 ## Run
 
 ```bash
-cd /Users/pauljames/Documents/Codex/Thai\ comic\ reader/backend_macos
+cd backend_macos
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

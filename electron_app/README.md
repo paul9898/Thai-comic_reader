@@ -28,9 +28,9 @@ To use it later:
 
 Or use:
 
-- [start-electron.command](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/start-electron.command)
-- [run-electron.sh](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/run-electron.sh)
-- [scripts/check-electron-readiness.sh](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/scripts/check-electron-readiness.sh)
+- `./start-electron.command`
+- `./run-electron.sh`
+- `./scripts/check-electron-readiness.sh`
 
 The shell launcher will install Electron dependencies, install frontend dependencies if needed, and build the frontend bundle if it is missing.
 
@@ -49,16 +49,16 @@ The shell launcher will install Electron dependencies, install frontend dependen
 
 ## Next steps
 
-- Finish the release checklist in [docs/release-checklist.md](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/docs/release-checklist.md)
+- Finish the release checklist in [`../docs/release-checklist.md`](../docs/release-checklist.md)
 - Bundle or ship a Python runtime cleanly for non-technical friends
 - Add app icons and a polished startup experience
 
 ## Windows prep
 
 - Bootstrap the Windows backend runtime with:
-  - [bootstrap-windows-runtime.ps1](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/scripts/bootstrap-windows-runtime.ps1)
+  - [`scripts/bootstrap-windows-runtime.ps1`](scripts/bootstrap-windows-runtime.ps1)
 - Windows packaging notes:
-  - [windows-packaging.md](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/docs/windows-packaging.md)
+  - [`docs/windows-packaging.md`](docs/windows-packaging.md)
 
 ## Packaging note
 
@@ -72,4 +72,4 @@ Not a JavaScript syntax issue or app-structure issue.
 
 ## Backend bundling
 
-See [docs/backend-bundling.md](/Users/pauljames/Documents/Codex/Thai%20comic%20reader/electron_app/docs/backend-bundling.md) for the next runtime-packaging step.
+See [`docs/backend-bundling.md`](docs/backend-bundling.md) for the next runtime-packaging step.
