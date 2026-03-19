@@ -14,6 +14,7 @@
 - Split backend runtime prep by platform instead of reusing the macOS environment everywhere.
 - Verify the Electron main process resolves Python paths for both macOS and Windows builds.
 - Add a repeatable bootstrap path for `backend_windows/.venv`.
+- Confirm the Windows packaging prep accepts a real Windows venv layout at `backend_windows/.venv/Lib/site-packages`.
 - Decide which runtime assets stay in the app bundle and which should be fetched or generated at first run.
 - Add release metadata: app name, icon set, version, and target output names.
 

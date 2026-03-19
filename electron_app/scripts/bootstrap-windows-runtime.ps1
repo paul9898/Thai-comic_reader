@@ -5,6 +5,7 @@ $RuntimeRoot = Join-Path $ProjectRoot "backend_windows"
 $VenvPath = Join-Path $RuntimeRoot ".venv"
 $PythonExe = Join-Path $VenvPath "Scripts\python.exe"
 $RequirementsPath = Join-Path $ProjectRoot "backend\requirements.txt"
+$PythonBootstrapCommand = $null
 
 Write-Host "Preparing Windows backend runtime..." -ForegroundColor Cyan
 Write-Host "Project root: $ProjectRoot"
@@ -13,13 +14,17 @@ if (-not (Test-Path $RuntimeRoot)) {
     New-Item -ItemType Directory -Path $RuntimeRoot | Out-Null
 }
 
-if (-not (Get-Command py -ErrorAction SilentlyContinue)) {
-    throw "Python launcher 'py' was not found. Install Python 3 for Windows first."
+if (Get-Command py -ErrorAction SilentlyContinue) {
+    $PythonBootstrapCommand = "py -3"
+} elseif (Get-Command python -ErrorAction SilentlyContinue) {
+    $PythonBootstrapCommand = "python"
+} else {
+    throw "Neither 'py' nor 'python' was found. Install Python 3 for Windows first."
 }
 
 if (-not (Test-Path $VenvPath)) {
     Write-Host "Creating virtual environment at $VenvPath" -ForegroundColor Yellow
-    py -3 -m venv $VenvPath
+    Invoke-Expression "$PythonBootstrapCommand -m venv `"$VenvPath`""
 }
 
 Write-Host "Upgrading pip tooling..." -ForegroundColor Yellow

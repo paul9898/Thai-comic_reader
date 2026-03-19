@@ -1,0 +1,123 @@
+name: Desktop Builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/desktop-builds.yml"
+      - "backend/**"
+      - "backend_macos/**"
+      - "backend_windows/**"
+      - "docs/**"
+      - "electron_app/**"
+      - "frontend/**"
+      - "dictionary.js"
+      - "telex-utf8.csv"
+  pull_request:
+    paths:
+      - ".github/workflows/desktop-builds.yml"
+      - "backend/**"
+      - "backend_macos/**"
+      - "backend_windows/**"
+      - "docs/**"
+      - "electron_app/**"
+      - "frontend/**"
+      - "dictionary.js"
+      - "telex-utf8.csv"
+
+concurrency:
+  group: desktop-builds-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  macos-package-prep:
+    name: macOS packaging prep
+    runs-on: macos-14
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            electron_app/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Electron dependencies
+        run: npm ci
+        working-directory: electron_app
+
+      - name: Build backend runtime for macOS packaging prep
+        run: |
+          python -m venv backend/.venv
+          source backend/.venv/bin/activate
+          python -m pip install --upgrade pip wheel setuptools
+          pip install -r backend/requirements.txt
+        shell: bash
+
+      - name: Verify macOS package prep
+        run: npm run package:prep:mac
+        working-directory: electron_app
+
+  windows-package:
+    name: Windows package
+    runs-on: windows-2022
+    needs: macos-package-prep
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            electron_app/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Electron dependencies
+        run: npm ci
+        working-directory: electron_app
+
+      - name: Bootstrap Windows backend runtime
+        run: powershell -ExecutionPolicy Bypass -File .\electron_app\scripts\bootstrap-windows-runtime.ps1
+
+      - name: Build Windows desktop package
+        run: npm run package:win
+        working-directory: electron_app
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: thai-comic-reader-windows
+          path: electron_app/dist
+          if-no-files-found: error

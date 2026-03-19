@@ -110,6 +110,11 @@ function isUsableRuntime(venvPath) {
 }
 
 function resolveSitePackagesPath(venvPath) {
+  const windowsSitePackagesPath = path.join(venvPath, 'Lib', 'site-packages')
+  if (fs.existsSync(windowsSitePackagesPath)) {
+    return windowsSitePackagesPath
+  }
+
   const libPath = path.join(venvPath, 'lib')
   if (!fs.existsSync(libPath)) {
     return null
