@@ -79,7 +79,9 @@ function resolveRuntimeSource(targetPlatform) {
       ]
 
   for (const candidate of candidates) {
+    console.log(`Checking runtime candidate: ${candidate}`)
     if (isUsableRuntime(candidate)) {
+      console.log(`Using runtime candidate: ${candidate}`)
       return candidate
     }
   }
@@ -98,15 +100,27 @@ function resolveRuntimeSource(targetPlatform) {
 
 function isUsableRuntime(venvPath) {
   if (!fs.existsSync(venvPath)) {
+    console.warn(`Runtime path missing: ${venvPath}`)
     return false
   }
 
   const sitePackagesPath = resolveSitePackagesPath(venvPath)
   if (!sitePackagesPath || !fs.existsSync(sitePackagesPath)) {
+    console.warn(`Site-packages missing for runtime: ${venvPath}`)
     return false
   }
 
-  return REQUIRED_PYTHON_PACKAGES.every((packageName) => fs.existsSync(path.join(sitePackagesPath, packageName)))
+  const missingPackages = REQUIRED_PYTHON_PACKAGES.filter(
+    (packageName) => !fs.existsSync(path.join(sitePackagesPath, packageName)),
+  )
+
+  if (missingPackages.length) {
+    console.warn(`Runtime ${venvPath} is missing required packages: ${missingPackages.join(', ')}`)
+    console.warn(`Resolved site-packages: ${sitePackagesPath}`)
+    return false
+  }
+
+  return true
 }
 
 function resolveSitePackagesPath(venvPath) {

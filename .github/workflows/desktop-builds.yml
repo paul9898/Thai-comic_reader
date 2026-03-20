@@ -112,7 +112,12 @@ jobs:
         run: powershell -ExecutionPolicy Bypass -File .\electron_app\scripts\bootstrap-windows-runtime.ps1
 
       - name: Prepare Windows desktop package
-        run: npm run package:prep:win
+        run: |
+          npm run package:prep:win *>&1 | Tee-Object -FilePath windows-package-prep.log
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+        shell: pwsh
         working-directory: electron_app
 
       - name: Build Windows desktop package
@@ -138,6 +143,7 @@ jobs:
         with:
           name: thai-comic-reader-windows-diagnostics
           path: |
+            electron_app/windows-package-prep.log
             electron_app/windows-package.log
             electron_app/dist
             electron_app/builder-debug.yml
